@@ -18,6 +18,11 @@ Plugin 'altercation/vim-colors-solarized'
 Plugin 'bling/vim-airline'
 Plugin 'scrooloose/syntastic'
 Plugin 'ntpeters/vim-better-whitespace'
+Plugin 'kburdett/vim-nuuid'
+Plugin 'tpope/vim-fugitive'
+Plugin 'kien/ctrlp.vim'
+Plugin 'valloric/YouCompleteMe'
+
 
 " " All of your Plugins must be added before the following line
 call vundle#end()            " required
@@ -45,7 +50,7 @@ set number
 set ruler
 set history=50
 set showcmd
-filetype plugin indent on
+"filetype plugin indent on
 set backspace=eol,indent,start
 set vb
 " Highlights cursor line
@@ -69,6 +74,7 @@ nnoremap <C-x> :x<cr>
 set scrolljump=5
 set scrolloff=3
 
+
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Tab Spacing
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -90,7 +96,7 @@ set ic
 " Plugins
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Ctrl+n to toggle NERDTree
-map <C-n> :NERDTreeToggle<CR>
+map <C-n> :NERDTreeToggle <CR>
 autocmd bufenter * if (winnr("$") == 1 && exists("b:NERDTree") && b:NERDTree.isTabTree()) | q | endif
 "let g:NERDTreeDirArrowExpandable = '>'
 "let g:NERDTreeDirArrowCollapsible = '>'
@@ -107,11 +113,14 @@ set background=dark
 colorscheme solarized
 let g:solarized_termcolors=256
 
-
+" Ctrl P
+let g:ctrlp_map = '<c-f>'
+let g:ctrlp_cmd = 'CtrlP'
 
 " Syntastic settings
 set statusline+=%#warningmsg#
 set statusline+=%{SyntasticStatuslineFlag()}
+set statusline+=%{fugitive#statusline()}
 set statusline+=%*
 
 let g:syntastic_always_populate_loc_list = 1
@@ -119,12 +128,19 @@ let g:syntastic_auto_loc_list = 1
 let g:syntastic_check_on_open = 0
 let g:syntastic_check_on_wq = 0
 let g:syntastic_mode_map = { 'mode': 'passive', 'active_filetypes':[],'passive_filetypes': [] }
-nnoremap <C-c> :SyntasticCheck<CR> 
+nnoremap <C-c> :SyntasticCheck<CR>
 
 
 let g:syntastic_filetype_map = {'json': 'javascript'}
 let g:syntastic_javascript_checkers=['']
 let g:syntastic_python_checkers=['pylint']
+let g:syntastic_python_python_exec = '/usr/local/bin/python3.6'
+
+
+" You complete me
+"nnoremap <C-l> :YcmCompleter GoToDefinition<cr>
+nnoremap <C-l> :vs \| YcmCompleter GoToDefinition<cr>
+nnoremap <C-g> :YcmCompleter GetDoc<cr>
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Window navigation
@@ -137,15 +153,15 @@ nnoremap <C-p> <C-w>w
 
 "Shortcuts using CTRL
 "Tab shortcuts
-nnoremap <C-h> :bn<cr>
-nnoremap <C-l> :bp<cr>
+nnoremap <C-l> :bn<cr>
+nnoremap <C-h> :bp<cr>
 nnoremap <C-i> :bn<cr>:bd#<cr>
 
 "Cursor wrapping, which wraps arrow keys
 set whichwrap+=<,>,h,l,[,]
 
 "Folding stuff
-au BufNewFile,BufRead *.py,*.json set ft=python sw=4
+au BufNewFile,BufRead *.py set foldmethod=indent
 au FileType cpp set foldmethod=syntax
 au FileType c set foldmethod=syntax
 map <space> za
@@ -168,7 +184,7 @@ autocmd! bufwritepost .vimrc source ~/.vimrc
 "Reload files after vimrc has been edited
 augroup myvimrc
     au!
-    au BufWritePost .vimrc,_vimrc,vimrc,.gvimrc,_gvimrc,gvimrc so $MYVIMRC | if has('gui_running') | so $MYGVIMRC | endif
+    au BufWritePost .vimrc,_vimrc,vimrc,.gvimrc,_gvimrc,gvimrc so $MYVIMRC| if has('gui_running') | so $MYGVIMRC | endif
 augroup END
 
 
@@ -189,3 +205,13 @@ set t_Co=256
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 au BufNewFile,BufFilePre,BufRead *.md set filetype=markdown
 
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" => Max Length check
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Set the maximal line length to 80 characters
+function ShowLongLine()
+match ErrorMsg '\%81v.\+'
+endfunction
+
+command R call ShowLongLine()

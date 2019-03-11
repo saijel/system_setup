@@ -1,43 +1,36 @@
-# ~/.bashrc: executed by bash(1) for non-login shells.
+export PYTHONPATH=$PATH:~/lucida-clinc:~/lucida-clinc/uservices
+export CLINC_PATH=~/lucida-clinc
 
-# for examples
+# Git config
+git config --global core.editor "vim"
+git config --global user.name "Saijel Mokashi"
+git config --global user.email "saijel@clinc.com"
+git config --global credential.helper cache
+
+
 export TERM=xterm-256color
 export CLICOLOR=1
 
-# If not running interactively, don't do anything
-case $- in
-    *i*) ;;
-      *) return;;
-esac
+alias python="python3"
+alias py="python3"
+alias pi="ssh clinc-user@raspberrypi"
+alias build-launch-finie="make docker && docker-flush-all && docker-compose up"
+alias get-setup="git clone https://github.com/saijel/system_setup.git"
+alias responses="grep -c "fields" $CLINC_PATH/clincapi/finie/fixtures/response_template_*.json"
 
-# don't put duplicate lines or lines starting with space in the history.
-# See bash(1) for more options
-HISTCONTROL=ignoreboth
+alias bash_clinc-api="docker exec -it lucida-clinc_clinc-api-server_1 /bin/bash"
+alias bash_admin-console="docker exec -it lucida-clinc_admin-console-server_1 /bin/bash"
+alias docker_postgres="docker run --name test-postgres -e POSTGRES_USER=eric -e POSTGRES_PASSWORD=clincdev -p 5432:5432 -d postgres:9.6.5"
 
-# append to the history file, don't overwrite it
-shopt -s histappend
+alias gca="git commit --amend --no-edit"
+alias gdm="git diff origin/master"
+alias gdw="git diff --word-diff-regex=."
+alias gco="git checkout"
+alias gcom="git checkout origin/master"
 
-# for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
-HISTSIZE=1000
-HISTFILESIZE=2000
+alias connect_mysql='docker exec -it lucidaclinc_static-web-content_1 mysql --user=clincdev --password=yesiamtherealclincdev --host=mysql-server --port=3306 --database=finie_db'
 
-# check the window size after each command and, if necessary,
-# update the values of LINES and COLUMNS.
-shopt -s checkwinsize
-
-# If set, the pattern "**" used in a pathname expansion context will
-# match all files and zero or more directories and subdirectories.
-#shopt -s globstar
-
-# make less more friendly for non-text input files, see lesspipe(1)
-[ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
-
-# set variable identifying the chroot you work in (used in the prompt below)
-if [ -z "${debian_chroot:-}" ] && [ -r /etc/debian_chroot ]; then
-    debian_chroot=$(cat /etc/debian_chroot)
-fi
-
-# set a fancy prompt (non-color, unless we know we "want" color)
+color_prompt=yes
 case "$TERM" in
     xterm-color) color_prompt=yes;;
 esac
@@ -45,7 +38,7 @@ esac
 # uncomment for a colored prompt, if the terminal has the capability; turned
 # off by default to not distract the user: the focus in a terminal window
 # should be on the output of commands, not on the prompt
-force_color_prompt=yes
+#force_color_prompt=yes
 
 if [ -n "$force_color_prompt" ]; then
     if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
@@ -59,7 +52,7 @@ if [ -n "$force_color_prompt" ]; then
 fi
 
 if [ "$color_prompt" = yes ]; then
-    PS1='${debian_chroot:+($debian_chroot)}\[\033[00;35m\]\u@\h\[\033[00m\]:\[\033[00;34m\]\w\[\033[00m\]\n\$ '
+    PS1='${debian_chroot:+($debian_chroot)}\[\033[00;34m\]\u@\h - [\d \@] - [\w]\[\033[00m\]\n\$ '
 else
     PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '
 fi
@@ -86,31 +79,58 @@ if [ -x /usr/bin/dircolors ]; then
     alias egrep='egrep --color=auto'
 fi
 
-# some more ls aliases
-alias ll='ls -alF'
-alias la='ls -A'
-alias l='ls -CF'
 
-# Add an "alert" alias for long running commands.  Use like so:
-#   sleep 10; alert
-alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
+function docker-flush-all(){
+    dockerlist=$(docker ps -a -q )
+    if [ "${dockerlist}" != "" ]; then
+        for d in ${dockerlist}; do
+            echo "***** ${d}"
+            docker stop ${d} 2>&1 > /dev/null
+            docker rm ${d} 2>&1 > /dev/null
+        done
+    fi
+}
 
-# Alias definitions.
-# You may want to put all your additions into a separate file like
-# ~/.bash_aliases, instead of adding them here directly.
-# See /usr/share/doc/bash-doc/examples in the bash-doc package.
+function docker-clean(){
+    docker rmi $(docker images --quiet --filter "dangling=true")
+    docker volume rm $(docker volume ls --quiet -f dangling=true)
+}
 
-if [ -f ~/.bash_aliases ]; then
-    . ~/.bash_aliases
-fi
+function findstring(){
+    grep -irn --include="*.$1" "${@:2}" . -C 5
+}
 
-# enable programmable completion features (you don't need to enable
-# this, if it's already enabled in /etc/bash.bashrc and /etc/profile
-# sources /etc/bash.bashrc).
-if ! shopt -oq posix; then
-  if [ -f /usr/share/bash-completion/bash_completion ]; then
-    . /usr/share/bash-completion/bash_completion
-  elif [ -f /etc/bash_completion ]; then
-    . /etc/bash_completion
-  fi
-fi
+function findexact(){
+    grep -rn --include="*.$1" "${@:2}" . -C 5
+}
+
+function findpy(){
+    grep -i -r --include="*.py" $1 .
+}
+
+function delete_file_types(){
+    sudo find . -name "*.$1" -type f -delete
+}
+
+function findfile(){
+    find . -name $1
+}
+function sub(){
+    grep -rl "${1}" . | xargs sed -i "s/${1}/${2}/g"
+}
+
+function check_uuids(){
+    grep -h "id" $CLINC_PATH/clincapi/finie/fixtures/response_template_* | sort | uniq --count --repeated
+}
+
+function prod-certs(){
+    docker run -it --rm -p 443:443 -p 80:80 --name letsencrypt \
+        -v "/etc/letsencrypt:/etc/letsencrypt"  \
+        -v "/var/lib/letsencrypt:/var/lib/letsencrypt" \
+        quay.io/letsencrypt/letsencrypt:latest auth
+}
+
+
+
+# Add RVM to PATH for scripting. Make sure this is the last PATH variable change.
+export PATH="$PATH:$HOME/.rvm/bin:$HOME/phhrb/bin:$HOME/ruby/bin"
